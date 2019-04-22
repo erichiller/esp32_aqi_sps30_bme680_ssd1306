@@ -2,19 +2,15 @@
 
 ESP32 with sensors SPS30, BME680 and OLED SSH1106 output + DashBoard WebServer + [Logging to ThingSpeak](https://thingspeak.com/channels/763363/)
 
-## How to use
+## Required Arduino Libraries
 
-```cmd
-git clone --recursive  https://github.com/mrchoke/ESP32_SPS30_DashBoard
-```
-
-## Add to library
-
-copy director `Arduino_ESP32_SPS30` to `arduino/libraries/`
-
-```cmd
-cp -r Arduino_ESP32_SPS30 ARDUINO_PATH/libraries/
-```
+- Add [`Arduino_ESP32_SPS30` library](https://github.com/jackrobotics/Arduino_ESP32_SPS30) to `arduino/libraries/`
+- via Arduino Library Manager:
+  - Adafruit Unified Sensors
+  - Adafruit BME680
+  - u8g2
+- via Arduino Board Manager
+  - ESP32
 
 ## Hardware / Pins
 
@@ -44,8 +40,6 @@ cp -r Arduino_ESP32_SPS30 ARDUINO_PATH/libraries/
   - 22
   - 3V
   - GND
-
-
 
 ## Terms
 
