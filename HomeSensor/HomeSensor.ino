@@ -3,38 +3,19 @@
 #include <WebServer.h>
 #include <WiFi.h>
 
-#if WIFI_SECURE == TRUE
-#include <WiFiClientSecure.h>
-#else
-#include <WiFiClient.h>
-#endif
 #include "ThingSpeak.h"
 
 #include "sensirion_uart.h"
 #include "sps30.h"
-#include "ssh1106.cpp"
+#include "ssh1106.h"
+#include "bme680.h"
 
 #include "index.h" // html template
 
-// Config here
-
-#define SanMateo 0      // Your location
-#define NECTEC 1
-#define TEST 2
-#define BEDROOM 3
-#define LIVINGROOM 4
-#define NECTECCO2 5
-
-#define LAT 0
-#define LON 1
-
-#define API_ENABLED 0
-#define THINGSPEAK_ENABLED 1
 
 #if WPA2EN
 #include "esp_wpa2.h"
 #include <Wire.h>
-
 const char *ssid = SSIDNAME;
 const char *username = "Username";
 const char *password = PASSWORD;
@@ -46,50 +27,27 @@ const char *password = PASSWORD;
 
 int LOCATE = SanMateo; // Select location
 
+struct sps30_measurement val;
+
+s16 ret;
+
 
 String label[] = {
     "SanMateo",         "NECTEC-MrChoke",     "TEST-MrChoke",
     "BEDROOM-MrChoke", "LIVINGROOM-MrChoke", "NECTEC-CoWorking-F2"};
 String sname = "SPS30"; // Sensor name
 
-
-
-
-
-//const char *host1 = "api.thingspeak.com";
 int counter = 0;
 
 uint8_t error_cnt = 0;
 
 unsigned long Timer1;
 
-//WiFiClientSecure client;
-WiFiClient client;
 WebServer server(80);
+CLIENT_TYPE client = {};
 
-// post to secure api https
-
-void httpsPost(const char *host, String url, String data) {
-  if (client.connect(host, 443)) {
-    client.println("POST " + url + " HTTP/1.1");
-    client.println("Host: " + (String)host);
-    client.println("User-Agent: ESP32SPS30/1.0");
-    client.println("Connection: close");
-    client.print("Content-Length: ");
-    client.println(data.length());
-    client.println("Content-Type: application/x-www-form-urlencoded;");
-    client.println();
-    client.println(data);
-    // String response = client.readString(); // uncomment for debug
-    client.stop();
-
-    // return response;
-    // Serial.println(response); // uncomment for debug
-  }
-}
 
 // Read CPU Temp
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -115,7 +73,7 @@ void handleRoot() {
 }
 
 void handlePM() {
-  struct sps30_measurement val;
+  // struct sps30_measurement val;
   s16 ret;
   u16 fanspeed;
   // u32 cleanhr;
@@ -163,21 +121,15 @@ void CheckWifi() {
   } else if (WiFi.status() != WL_CONNECTED) {
 
 #if WPA2EN
-
     esp_wifi_sta_wpa2_ent_set_identity((uint8_t *)username, strlen(username));
     esp_wifi_sta_wpa2_ent_set_username((uint8_t *)username, strlen(username));
     esp_wifi_sta_wpa2_ent_set_password((uint8_t *)password, strlen(password));
     esp_wpa2_config_t config = WPA2_CONFIG_INIT_DEFAULT();
     esp_wifi_sta_wpa2_ent_enable(&config);
     WiFi.begin(ssid);
-
 #else
-
     WiFi.begin(ssid, password);
-
 #endif
-
-    //  while(WiFi.waitForConnectResult() != WL_CONNECTED){
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.print(".");
@@ -190,14 +142,16 @@ void CheckWifi() {
   }
 }
 
-void PushToApi() {
-  struct sps30_measurement val;
-  s16 ret;
-
+void get_sps30(){
   do {
     ret = sps30_read_measurement(&val);
     delay(500);
   } while (ret < 0);
+}
+
+void PushToApi() {
+
+	get_sps30();
 
   // print out for debug
 
@@ -223,13 +177,16 @@ void PushToApi() {
 //    data += "&label=" + label[LOCATE];
 //    data += "&sname=" + sname;
 //  }
-  #if THINGSPEAK_ENABLED
+#if THINGSPEAK_ENABLED
   ThingSpeak.setField(1, val.mc_1p0);
   ThingSpeak.setField(2, val.mc_2p5);
   ThingSpeak.setField(3, val.mc_4p0);
   ThingSpeak.setField(4, val.mc_10p0);
+  ThingSpeak.setField(5, bme.temperature);
+  ThingSpeak.setField(6, (float)( bme.pressure / 100.0) );
+  ThingSpeak.setField(7, bme.humidity);
+  ThingSpeak.setField(8, (float)(bme.gas_resistance / 1000.0) );
 //  ThingSpeak.setField(5, label[LOCATE]);
-
 
   // write to the ThingSpeak channel
   int x = ThingSpeak.writeFields(tspk_chan, tspk_key);
@@ -239,9 +196,15 @@ void PushToApi() {
   else{
     Serial.println("Problem updating channel. HTTP error code " + String(x));
   }
-  #endif
+#endif
 }
 
+
+
+
+/**
+ * setup
+ */
 void setup() {
 
   Serial.begin(115200);
@@ -272,7 +235,7 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  // imprement server handler
+  // implement server handler
   server.on("/", handleRoot);
   server.on("/pm2", handlePM);
   server.on("/setautoclean", handleSetAutoClean);
@@ -281,7 +244,14 @@ void setup() {
   server.begin();
   Serial.println("HTTP server started");
 
-  ThingSpeak.begin(client); 
+  
+  debug("Setting up screen");
+  setup_ssh1106();
+
+  debug("Setting up BME680 sensor");
+  bme680_setup();
+
+  ThingSpeak.begin(client);
   // send frist data to api server
   PushToApi();
 }
@@ -291,13 +261,16 @@ void loop() {
   // Alway CheckWifi
   CheckWifi();
 
-  // http server alway wait for client
+  // http server always wait for client
   server.handleClient();
-  // sent data to api every 1 min
 
+  // send data to api every 1 min
   if (millis() - Timer1 >= 60000) {
     Timer1 = millis();
     PushToApi();
   }
+  update_ssh1106(&val);
+
+  bme680_update_screen();
   delay(1);
 }
