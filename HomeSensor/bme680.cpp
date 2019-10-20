@@ -4,8 +4,8 @@
 extern Adafruit_BME680 bme = {};    // I2C
 
 // setup
-void bme680_setup( ) {
-	Serial.println( F( "BME680 test" ) );
+void setup_bme680( ) {
+	Serial.println( F( "BME680 setup" ) );
 	if( !bme.begin( ) ) {
 		Serial.println( "Could not find a valid BME680 sensor, check wiring!" );
 		while( 1 )
@@ -19,14 +19,18 @@ void bme680_setup( ) {
 	bme.setGasHeater( 320, 150 );    // 320*C for 150 ms
 }
 
-void bme680_update_screen( ) {
+void measure_bm680( ) {
 	// display.setCursor( 0, 0 );
 	// display.clearDisplay( );
+#if DEBUG
+	Serial.println( " performReading with BME680... " );
+#endif
 
 	if( !bme.performReading( ) ) {
 		Serial.println( "Failed to perform reading on BME680 !" );
 		return;
 	}
+#if DEBUG
 	Serial.print( "Temperature = " );
 	Serial.print( bme.temperature );
 	Serial.println( " *C" );
@@ -60,6 +64,9 @@ void bme680_update_screen( ) {
 	// readAltitude
 
 	Serial.println( );
+#else
+	Serial.print(".");
+#endif
 	// display.display( );
 	delay( 2000 );
 }

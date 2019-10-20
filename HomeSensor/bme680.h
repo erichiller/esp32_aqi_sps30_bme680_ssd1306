@@ -4,10 +4,10 @@
 #include "Adafruit_BME680.h"
 
 
-void bme680_setup();
+void setup_bme680( );
 
 
-void bme680_update_screen();
+void measure_bm680( );
 
 
 extern Adafruit_BME680 bme;    // I2C

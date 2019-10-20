@@ -5,7 +5,6 @@
 #include "Adafruit_BME680.h"
 #include "bme680.h"
 
-
 // pinMode( 22,  );
 
 U8G2_SH1106_128X64_NONAME_1_4W_HW_SPI u8g2( U8G2_R0, /* cs=*/5, /* dc=*/33, /* reset=*/32 );
@@ -20,8 +19,9 @@ uint8_t MENU_pin_up     = 26;
 
 char print_action[20] = "none";
 
-char buf_data[16];
-char buf_temp[16];
+char buf_d1[32];
+char buf_d2[32];
+char bufTime[9];
 
 void setup_ssh1106(){
 	pinMode( MENU_pin_select, INPUT_PULLDOWN );
@@ -30,11 +30,31 @@ void setup_ssh1106(){
 
 }
 
-void update_ssh1106(sps30_measurement *data){
+void message_ssh1106( char *message, char *result ) {
+	sprintf( buf_d1, message );
+	sprintf( buf_d2, result );
+
+	u8g2.firstPage( );
+	do {
+		u8g2.setFont( u8g2_font_6x10_tf );
+
+		u8g2.setCursor( 5, 15 );
+		// const char
+		u8g2.print( F( buf_d1 ) );
+		u8g2.setCursor( 5, 62 );
+		u8g2.setFont( u8g2_font_6x10_tf );
+		u8g2.print( F( buf_d2 ) );
+	} while( u8g2.nextPage( ) );
+}
+
+void update_ssh1106( sps30_measurement *data, String ntpFormattedTime) {
 	// u8g2.setFont( u8g2_font_logisoso30_tn );
-	sprintf( buf_data, "%f", data->mc_2p5 );
-	// sprintf( buf_data, "%i", 3 );
-	sprintf( buf_temp, "%f \xfe", bme.temperature );
+	sprintf( buf_d1, "%f", data->mc_2p5 );
+	sprintf( bufTime, "%s", ntpFormattedTime );
+	// sprintf( buf_d1, "%i", 3 );
+	// sprintf( buf_d2, "%f \xfe", bme.temperature );
+	String( bme.temperature, 2 ).toCharArray( buf_d2, 5 );
+	// sprintf( buf_d2, String( bme.temperature, 2 ).toCharArray( buf_d2, 4 ) );
 
 	// debug("sensor is:");
 	// debugln(data->nc_2p5);
@@ -45,12 +65,15 @@ void update_ssh1106(sps30_measurement *data){
 
 		u8g2.setCursor( 5, 15 );
 		// const char
-		u8g2.print( F( buf_temp ) );
+		u8g2.print( F( buf_d2 ) );
+		u8g2.setCursor( 58, 15 );
+		// const char
+		u8g2.print( F( bufTime ) );
 		// u8g2.setCursor( 5, 31 );
 		// u8g2.print( F( print_action ) );
 		u8g2.setCursor( 5, 62 );
 		u8g2.setFont( u8g2_font_inb30_mr );
-		u8g2.print( F( buf_data ) );
+		u8g2.print( F( buf_d1 ) );
 	} while( u8g2.nextPage( ) );
 
     

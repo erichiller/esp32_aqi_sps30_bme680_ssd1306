@@ -1,3 +1,9 @@
 [submodule ".\\vendor\\Adafruit_Sensor\\"]
 	path = .\\vendor\\Adafruit_Sensor\\
 	url = https://github.com/adafruit/Adafruit_Sensor
+[submodule "Arduino_ESP32_SPS30"]
+	path = Arduino_ESP32_SPS30
+	url = https://github.com/jackrobotics/Arduino_ESP32_SPS30
+[submodule "vendor/ESP8266_Influx_DB"]
+	path = vendor/ESP8266_Influx_DB
+	url = https://github.com/tobiasschuerg/ESP8266_Influx_DB
