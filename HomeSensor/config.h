@@ -22,7 +22,7 @@
 
 /*** INFLUX DB ***/
 #define INFLUX_DB_ENABLED 1
-#define INFLUXDB_HOST "192.168.10.125"
+#define INFLUXDB_HOST "influxdb.hiller.pro"
 // #define INFLUXDB_PORT "8086"
 #define INFLUXDB_DATABASE "home"
 //if used with authentication
